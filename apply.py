@@ -110,7 +110,7 @@ frame.pack_propagate(False)
 #Frame Layout 2 (Graph Interface)
 frame2 = tk.Frame(master=app, background="#2b2d3b")
 frame2.pack(side = "right", fill = "both", expand = True)
-graph_label = tk.Label(master=frame2, text = "Campus Map")
+graph_label = tk.Label(master=frame2, text = "Campus Map", background="#2b2d3b", foreground="#F8F8FF", font=("Segoe UI Black", 20))
 graph_label.pack(pady=10)
 
 
@@ -404,18 +404,32 @@ def create_edge():
 
 def randomize_weights():
     if not edges:
-        messagebox.showinfo("Info", "No edges to randomize!")
+        messagebox.showinfo("Error", "No edges to randomize!")
         return
     
     for edge_key in edges:
         edges[edge_key]['distance'] = random.randint(1, 10)
         edges[edge_key]['time'] = random.randint(1, 10)
+
+    for edge_key, data in edges.items():
+        print(f"{edge_key}: distance={data['distance']}, time={data['time']}")
     draw_nodes()
 
+def clear_graph():
+    global graph, node_positions, edges
+    graph = {}
+    node_positions = {}
+    edges = {}
+    
+    for combo in comboboxes:
+        combo.configure(values=[""])
+    
+    graph_canvas.delete("all")
 
 # Binds the commands to the GUI
 add_button.configure(command=add_building)
 change_button.configure(command=create_edge)
 randomize_button.configure(command=randomize_weights)
+clear_button.configure(command=clear_graph)
 
 app.mainloop()
