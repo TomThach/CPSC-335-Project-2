@@ -29,6 +29,9 @@ node_positions = {}
 edges = {}
 comboboxes = []
 accessibility_var = tk.IntVar()
+accessibility_only_var = tk.IntVar()
+edge_closure_var = tk.IntVar()
+
 
 # SETTING UP BFS // DFS Functions
 
@@ -156,7 +159,8 @@ distance_entry = tk.Entry(master = from_row, width=8, foreground ="#888888",
 distance_entry.pack(side = "left", padx=5)
 distance_entry.insert(0, "Distance")
 
-accessibility_switch = tk.Checkbutton(master=from_row, text = "Access.", font = ("Segoe UI Black", 12), background= "#8A87A4", fg = "black" )
+accessibility_switch = tk.Checkbutton(master=from_row, text = "Access.", font = ("Segoe UI Black", 12), background= "#8A87A4", fg = "black",
+                                      width=15)
 accessibility_switch.pack(side = "left")
 
 #TO
@@ -230,10 +234,12 @@ DFS_button = tk.Button(master=BFS_DFS_layout, text="DFS", background="#676386",
 DFS_button.pack(side="left", padx=10, pady=4)
 
 
-accessibility_switch_BFS_DFS = tk.Checkbutton(master=frame, text = "Accessibility", font = ("Segoe UI Black", 12), width=2)
+accessibility_switch_BFS_DFS = tk.Checkbutton(master=frame, text = "Accessibility", font = ("Segoe UI Black", 12),
+                                              width=15, variable=accessibility_only_var, background="#2b2d3b", fg="black")
 accessibility_switch_BFS_DFS.pack(side = "top")
 
-edge_closure = tk.Checkbutton(master=frame, text = "Edge Closure", font = ("Segoe UI Black", 12))
+edge_closure = tk.Checkbutton(master=frame, text = "Respect Closures", font = ("Segoe UI Black", 12),
+                              width=15, variable=edge_closure_var, background="#2b2d3b", fg="black")
 edge_closure.pack(side = "top", padx=(5,1))
 
 
