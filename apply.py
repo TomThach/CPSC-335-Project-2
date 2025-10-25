@@ -525,6 +525,10 @@ def run_bfs():
     global highlighted_path
     highlighted_path = path
     draw_nodes()
+    messagebox.showinfo("BFS Result",
+                        f"Traversal Order:\n{', '.join(order)}\n\n"
+                        f"Path from {start} to {end}:\n{', '.join(path) if path else 'No path found'}")
+
 
 def run_dfs():
     start = start_combo_box.get().strip()
@@ -553,6 +557,10 @@ def run_dfs():
     global highlighted_path
     highlighted_path = path
     draw_nodes()
+    messagebox.showinfo("DFS Result",
+                        f"Traversal Order:\n{', '.join(order)}\n\n"
+                        f"Path from {start} to {end}:\n{', '.join(path) if path else 'No path found'}")
+
 
 def draw_legend():
     padding = 10
@@ -570,10 +578,11 @@ def draw_legend():
         x, y,
         text=legend_text,
         fill="black",
-        font=("Segoe UI Black", 9),
+        font=("Segoe UI Black", 7),
         anchor="ne",
         justify="left"
     )
+    
 
 # Binds the commands to the GUI
 add_button.configure(command=add_building)
