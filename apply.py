@@ -4,15 +4,32 @@
 # Date: 10-19-2025
 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
-from customtkinter import *
 from collections import deque
+import random
+import math
 
-
-app = CTk()
+app = tk.Tk()
 
 app.geometry("1200x700")
-set_appearance_mode("dark")
+
+# Styling for ComboBoxes
+
+style= ttk.Style()
+style.theme_use('clam')
+style.configure("TCombobox",
+                fieldbackground="#2b2d3b",
+                background="#494c65",
+                foreground="#F8F8FF",
+                font=("Segoe UI Black", 15))
+
+
+graph = {}
+node_positions = {}
+edges = {}
+comboboxes = []
+
 
 # SETTING UP BFS // DFS Functions
 
@@ -71,7 +88,148 @@ def dfs_cycle_and_topo(graph):
     return False, topo
 
 
-graph = {}
+
+
+#Frame Layout 1 (asdasdsad)
+frame = tk.Frame(master=app, background="#2b2d3b", width=350)
+frame.pack(side = "left", fill = "y")
+frame.pack_propagate(False)
+
+
+#Frame Layout 2 (Graph)
+frame2 = tk.Frame(master=app, background="#2b2d3b")
+frame2.pack(side = "right", fill = "both", expand = True)
+graph_label = tk.Label(master=frame2, text = "Campus Map")
+graph_label.pack(pady=10)
+
+
+
+#LABEL
+label = tk.Label(master=frame, text = "🧱 Add Building", background= "#2b2d3b", foreground= "#F8F8FF", font = ("Segoe UI Black", 18))
+label.pack(side = "top", padx=10, pady=(25,5))
+
+entry = tk.Entry(master=frame, width=300, foreground="#F8F8FF", 
+                 background= "#2b2d3b", font = ("Segoe UI Black", 20))
+entry.pack(side = "top", padx=10, pady=2)
+
+
+#Creating Button Frame within the Frame
+button_layout = tk.Frame(master=frame, background= "#2b2d3b")
+button_layout.pack(side="top", padx=14, pady=1, fill="x")
+
+#Buttons
+clear_button = tk.Button(master=button_layout, text = "Clear", background = "#676386",
+                foreground="#F8F8FF", font = ("Segoe UI Black", 12), width = 10, height=1)
+clear_button.pack(side = "left", padx=(40,20), pady=4)
+
+add_button = tk.Button(master=button_layout, text = "Add", background = "#8A87A4",
+                 foreground="#F8F8FF", font = ("Segoe UI Black", 12), width = 10, height=1)
+add_button.pack(side = "left", padx=10, pady=4)
+
+
+#Connect Buildings
+connecting_building_label = tk.Label(master=frame, background= "#2b2d3b", text = "Connect Buildings", 
+                                     foreground = "#F8F8FF", font = ("Segoe UI Black", 18))
+connecting_building_label.pack(side = "top", padx=10, pady=(30,0))
+
+
+#FROM
+from_row = tk.Frame(master=frame, background= "#2b2d3b")
+from_row.pack(side="top", padx=10, pady=(4, 0), fill="x")
+
+
+from_label = tk.Label(master=from_row, text="From:", background= "#2b2d3b", foreground = "#F8F8FF", font = ("Segoe UI Black", 14))
+from_label.pack(side = "left", padx=(2,4), pady=2)
+from_combo_box = ttk.Combobox(master=from_row, values = [""], width=5,
+                             foreground ="#F8F8FF", font = ("Segoe UI Black", 15), background= "#2b2d3b")
+from_combo_box.pack(side = "left", padx=1)
+
+distance_entry = tk.Entry(master = from_row, width=8, foreground ="#F8F8FF",
+                      background= "#2b2d3b", font = ("Segoe UI Black", 12))
+distance_entry.pack(side = "left", padx=5)
+
+accessibility_switch = tk.Checkbutton(master=from_row, text = "Access.", font = ("Segoe UI Black", 12), background= "#8A87A4", fg = "#F8F8FF" )
+accessibility_switch.pack(side = "left")
+
+#TO
+
+to_row = tk.Frame(master=frame, background= "#2b2d3b")
+to_row.pack(side="top", padx=10, fill="x")
+
+
+to_label = tk.Label(master=to_row, text="To:", background= "#2b2d3b", foreground = "#F8F8FF", font = ("Segoe UI Black", 14))
+to_label.pack(side = "left", padx=(26,4), pady=5)
+to_combo_box = ttk.Combobox(master=to_row, values = [""], width=5,
+                             foreground ="#F8F8FF", font = ("Segoe UI Black", 15), background= "#2b2d3b")
+to_combo_box.pack(side = "left", padx=1)
+
+time_entry = tk.Entry(master = to_row, width=8, foreground ="#F8F8FF",
+                      background= "#2b2d3b", font = ("Segoe UI Black", 12))
+time_entry.pack(side = "left", padx=5)
+
+change_button = tk.Button(master=to_row, text = "Change", background = "#8A87A4",
+                 foreground ="#F8F8FF", font = ("Segoe UI Black", 12), width = 6, height=1)
+change_button.pack(side = "left", padx=1, pady=4)
+
+
+#Randomize Weights
+randomize_label = tk.Label(master=frame, text = "Randomize All Weights", foreground = "#F8F8FF", font = ("Segoe UI Black", 18), 
+                           background= "#2b2d3b")
+randomize_label.pack(side = "top", padx=10, pady=(30,0))
+
+randomize_button = tk.Button(master=frame, text = "Randomize", background = "#676386",
+                             foreground ="#F8F8FF", font = ("Segoe UI Black", 12), width = 10, height=1)
+randomize_button.pack(side = "top", padx=10, pady=(1, 30))
+
+#BFS and DFS Implementation
+
+BFS_DFS_label = tk.Label(master=frame, text = "BFS/DFS Test", foreground = "#F8F8FF", font = ("Segoe UI Black", 18),
+                         background= "#2b2d3b")
+BFS_DFS_label.pack(side = "top", padx=10)
+
+#Start 
+start_row = tk.Frame(master=frame, background= "#2b2d3b")
+start_row.pack(side="top", padx=10, pady=(4, 0), fill="x")
+
+
+start_label = tk.Label(master=start_row, text="Start:", foreground = "#F8F8FF", font = ("Segoe UI Black", 14),
+                       background= "#2b2d3b")
+start_label.pack(side = "left", padx=(2,4), pady=2)
+start_combo_box = ttk.Combobox(master=start_row, values = [""], width=4,
+                               foreground ="#F8F8FF", font = ("Segoe UI Black", 15), background= "#2b2d3b")
+start_combo_box.pack(side = "left", padx=1)
+
+end_label = tk.Label(master=start_row, text="End:", foreground = "#F8F8FF", font = ("Segoe UI Black", 14),
+                     background= "#2b2d3b")
+end_label.pack(side = "left", padx=(20,4), pady=2)
+end_combo_box = ttk.Combobox(master=start_row, values = [""], width=4,
+                               foreground ="#F8F8FF", font = ("Segoe UI Black", 15), background= "#2b2d3b")
+end_combo_box.pack(side = "left", padx=1)
+
+
+
+BFS_DFS_layout = tk.Frame(master=frame, background= "#2b2d3b")
+BFS_DFS_layout.pack(side="top", padx=14, pady=10, fill="x")
+
+# Buttons
+BFS_button = tk.Button(master=BFS_DFS_layout, text="BFS", background="#676386",
+                       foreground ="#F8F8FF", font=("Segoe UI Black", 12), width = 5, height=1)
+BFS_button.pack(side="left", padx=(80, 20), pady=4)
+
+DFS_button = tk.Button(master=BFS_DFS_layout, text="DFS", background="#676386",
+                       foreground ="#F8F8FF", font=("Segoe UI Black", 12), width = 5, height=1)
+DFS_button.pack(side="left", padx=10, pady=4)
+
+
+accessibility_switch_BFS_DFS = tk.Checkbutton(master=frame, text = "Accessibility", font = ("Segoe UI Black", 12), width=2)
+accessibility_switch_BFS_DFS.pack(side = "top")
+
+edge_closure = tk.Checkbutton(master=frame, text = "Edge Closure", font = ("Segoe UI Black", 12))
+edge_closure.pack(side = "top", padx=(5,1))
+
+
+#GRAPH
+
 
 def add_building():
     name = entry.get().strip()
@@ -80,156 +238,37 @@ def add_building():
         return
     if name in graph:
         tk.messagebox.showerror("ERROR", "Building name already exists")
+        return
 
     graph[name] = []
     print(graph)
+    entry.delete(0, "end")
 
 
 
 
-#Frame Layout 1 (asdasdsad)
-frame = CTkFrame(master=app, fg_color="#2b2d3b", border_color="#494c65", border_width=6, width=350, corner_radius=0)
-frame.pack(side = LEFT, fill = "y")
-frame.pack_propagate(False)
+
+def create_edge():
+    a = from_combo_box.get().strip()
+    b = to_combo_box.get().strip()
+
+    if not a or not b:
+        messagebox.showerror("Error", "Select two buildings!")
+        return
+    
+    if a == b:
+        messagebox.showerror("Error", "Select two unique buildings!")
+        return
+
+    try:
+        distance = int(distance_entry.get())
+        time = int(time_entry.get())
+    except ValueError:
+        messagebox.showerror("Error", "Distance and time must be numbers!")
+        return
 
 
-#Frame Layout 2 (Graph)
-frame2 = CTkFrame(master=app, fg_color="transparent", border_color="#494c65", border_width=6, corner_radius=0)
-frame2.pack(side = RIGHT, fill = "both", expand = True)
-graph_label = CTkLabel(master=frame2, text = "Campus Map")
-graph_label.pack(pady=10)
-
-
-
-#LABEL
-label = CTkLabel(master=frame, text = "🧱 Add Building", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-label.pack(side = TOP, padx=10, pady=(25,5))
-
-entry = CTkEntry(master=frame, placeholder_text="Names...", width=300, text_color="#F8F8FF", 
-                 fg_color= "#2b2d3b", border_color="#494c65", border_width= 4, font = ("Segoe UI Black", 20))
-entry.pack(side = TOP, padx=10, pady=2)
-
-
-#Creating Button Frame within the Frame
-button_layout = CTkFrame(master=frame, fg_color="transparent")
-button_layout.pack(side=TOP, padx=14, pady=1, fill="x")
-
-#Buttons
-clear_button = CTkButton(master=button_layout, text = "Clear", corner_radius=10, fg_color = "#676386", border_color="#494c65", border_width=3,
-                text_color="#F8F8FF", font = ("Segoe UI Black", 15), hover_color="#BCB8DE")
-clear_button.pack(side = LEFT, padx=10, pady=4)
-
-add_button = CTkButton(master=button_layout, text = "Add", corner_radius=10, fg_color = "#8A87A4", border_color="#494c65", border_width=3,
-                 text_color="#F8F8FF", font = ("Segoe UI Black", 15), hover_color="#BCB8DE")
-add_button.pack(side = LEFT, padx=10, pady=4)
 add_button.configure(command=add_building)
-
-#Connect Buildings
-connecting_building_label = CTkLabel(master=frame, text = "Connect Buildings", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-connecting_building_label.pack(side = TOP, padx=10, pady=(50,0))
-
-
-#FROM
-from_row = CTkFrame(master=frame, fg_color="transparent")
-from_row.pack(side=TOP, padx=10, pady=(4, 0), fill="x")
-
-
-from_label = CTkLabel(master=from_row, text="From:", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-from_label.pack(side = LEFT, padx=(2,4), pady=2)
-from_combo_box = CTkComboBox(master=from_row, values = ["CS", "LIB", "TSU"], width=80, border_color="#494c65", border_width=3,
-                             text_color="#F8F8FF", font = ("Segoe UI Black", 15), fg_color= "#2b2d3b", button_color="#494c65")
-from_combo_box.pack(side = LEFT, padx=1)
-
-distance_entry = CTkEntry(master = from_row, placeholder_text="Distances", width=80, text_color="#F8F8FF",
-                      fg_color= "#2b2d3b", border_color="#494c65", border_width= 4, font = ("Segoe UI Black", 12))
-distance_entry.pack(side = LEFT, padx=5)
-
-accessibility_switch = CTkSwitch(master=from_row, text = "Access.", button_color="#8A87A4", progress_color="#B4B1CD", 
-                                 font = ("Segoe UI Black", 12))
-accessibility_switch.pack(side = LEFT)
-
-#TO
-
-to_row = CTkFrame(master=frame, fg_color="transparent")
-to_row.pack(side=TOP, padx=10, fill="x")
-
-
-to_label = CTkLabel(master=to_row, text="To:", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-to_label.pack(side = LEFT, padx=(26,4), pady=2)
-to_combo_box = CTkComboBox(master=to_row, values = ["CS", "LIB", "TSU"], width=80, border_color="#494c65", border_width=3,
-                             text_color="#F8F8FF", font = ("Segoe UI Black", 15), fg_color= "#2b2d3b", button_color="#494c65")
-to_combo_box.pack(side = LEFT, padx=1)
-
-time_entry = CTkEntry(master = to_row, placeholder_text="Times", width=80, text_color="#F8F8FF",
-                      fg_color= "#2b2d3b", border_color="#494c65", border_width= 4, font = ("Segoe UI Black", 12))
-time_entry.pack(side = LEFT, padx=5)
-
-change_button = CTkButton(master=to_row, text = "Change", corner_radius=10, fg_color = "#8A87A4", border_color="#494c65", border_width=3,
-                 text_color="#F8F8FF", font = ("Segoe UI Black", 15), hover_color="#BCB8DE")
-change_button.pack(side = LEFT, padx=1, pady=4)
-
-
-#Randomize Weights
-randomize_label = CTkLabel(master=frame, text = "Randomize All Weights", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-randomize_label.pack(side = TOP, padx=10, pady=(50,0))
-
-randomize_button = CTkButton(master=frame, text = "Randomize", corner_radius=10, fg_color = "#676386", border_color="#494c65", border_width=3,
-                text_color="#F8F8FF", font = ("Segoe UI Black", 15), hover_color="#BCB8DE")
-randomize_button.pack(side = TOP, padx=10, pady=(1, 50))
-
-#BFS and DFS Implementation
-
-BFS_DFS_label = CTkLabel(master=frame, text = "BFS/DFS Test", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-BFS_DFS_label.pack(side = TOP, padx=10)
-
-#Start 
-start_row = CTkFrame(master=frame, fg_color="transparent")
-start_row.pack(side=TOP, padx=10, pady=(4, 0), fill="x")
-
-
-start_label = CTkLabel(master=start_row, text="Start:", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-start_label.pack(side = LEFT, padx=(2,4), pady=2)
-start_combo_box = CTkComboBox(master=start_row, values = ["CS", "LIB", "TSU"], width=80, border_color="#494c65", border_width=3,
-                             text_color="#F8F8FF", font = ("Segoe UI Black", 15), fg_color= "#2b2d3b", button_color="#494c65")
-start_combo_box.pack(side = LEFT, padx=1)
-
-end_label = CTkLabel(master=start_row, text="End:", text_color= "#F8F8FF", font = ("Segoe UI Black", 18))
-end_label.pack(side = LEFT, padx=(20,4), pady=2)
-end_combo_box = CTkComboBox(master=start_row, values = ["CS", "LIB", "TSU"], width=80, border_color="#494c65", border_width=3,
-                             text_color="#F8F8FF", font = ("Segoe UI Black", 15), fg_color= "#2b2d3b", button_color="#494c65")
-end_combo_box.pack(side = LEFT, padx=1)
-
-
-
-BFS_DFS_layout = CTkFrame(master=frame, fg_color="transparent")
-BFS_DFS_layout.pack(side=TOP, padx=14, pady=10, fill="x")
-
-# Buttons
-BFS_button = CTkButton(master=BFS_DFS_layout, text="BFS", corner_radius=10, fg_color="#676386",
-                       border_color="#494c65", border_width=3, text_color="#F8F8FF", font=("Segoe UI Black", 15), hover_color="#BCB8DE")
-BFS_button.pack(side=LEFT, padx=10, pady=4)
-
-DFS_button = CTkButton(master=BFS_DFS_layout, text="DFS", corner_radius=10, fg_color="#676386",
-                       border_color="#494c65", border_width=3, text_color="#F8F8FF", font=("Segoe UI Black", 15), hover_color="#BCB8DE")
-DFS_button.pack(side=LEFT, padx=10, pady=4)
-
-accessibility_switch_BFS_DFS = CTkSwitch(master=frame, text = "Accessibility", button_color="#8A87A4", progress_color="#B4B1CD", 
-                                 font = ("Segoe UI Black", 12))
-accessibility_switch_BFS_DFS.pack(side = TOP)
-
-edge_closure = CTkSwitch(master=frame, text = "Edge Closure", button_color="#8A87A4", progress_color="#B4B1CD", 
-                                 font = ("Segoe UI Black", 12))
-edge_closure.pack(side = TOP, padx=(5,1))
-
-#STATUS BOX
-status_textbox = CTkTextbox(master=frame, corner_radius=16, scrollbar_button_color="#2b2d3b", border_color="#494c65", 
-                            fg_color="#2b2d3b", border_width=4, width=450, height=2)
-status_textbox.pack(side = TOP, padx = 8, pady = 20)
-
-status_textbox.configure(state="disabled")
-
-
-#GRAPH
-
+change_button.configure(command=create_edge)
 
 app.mainloop()
