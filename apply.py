@@ -125,7 +125,6 @@ frame2.pack(side = "right", fill = "both", expand = True)
 graph_label = tk.Label(master=frame2, text = "Campus Map", background="#2b2d3b", foreground="#F8F8FF", font=("Segoe UI Black", 20))
 graph_label.pack(pady=10)
 
-
 #LABEL
 label = tk.Label(master=frame, text = "🧱 Add Building", background= "#2b2d3b", foreground= "#F8F8FF", font = ("Segoe UI Black", 18))
 label.pack(side = "top", padx=10, pady=(25,5))
@@ -263,7 +262,6 @@ comboboxes = [from_combo_box, to_combo_box, start_combo_box, end_combo_box]
 #Frame for the graph
 graph_canvas = tk.Canvas(frame2, bg="white", width=600, height=400)
 graph_canvas.pack(fill="both", expand=True)
-
 
 # Clears the Placeholder Text for Distance and Time Entry
 
@@ -409,6 +407,7 @@ def draw_nodes():
         )
         graph_canvas.create_text(x, y, text=building, fill="white", 
                                 font=("Segoe UI Black", 10))
+    draw_legend()
 
 
 
@@ -554,6 +553,27 @@ def run_dfs():
     global highlighted_path
     highlighted_path = path
     draw_nodes()
+
+def draw_legend():
+    padding = 10
+    x = graph_canvas.winfo_width() - padding
+    y = padding
+
+    legend_text = (
+        "Green → Current BFS/DFS path\n"
+        "Red → Closed or blocked path (click on path to close)\n"
+        "Orange → Non-accessible path\n"
+        "Gray/Black → Open regular path"
+    )
+
+    graph_canvas.create_text(
+        x, y,
+        text=legend_text,
+        fill="black",
+        font=("Segoe UI Black", 9),
+        anchor="ne",
+        justify="left"
+    )
 
 # Binds the commands to the GUI
 add_button.configure(command=add_building)
