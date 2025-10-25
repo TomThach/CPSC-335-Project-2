@@ -407,7 +407,7 @@ def draw_nodes():
             x - radius, y - radius, x + radius, y + radius,
             fill=fill_color, outline=outline_color, width=outline_width
         )
-        graph_canvas.create_text(x, y, text=building, fill="#000000", 
+        graph_canvas.create_text(x, y, text=building, fill="white", 
                                 font=("Segoe UI Black", 10))
 
 
