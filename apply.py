@@ -28,6 +28,7 @@ graph = {}
 node_positions = {}
 edges = {}
 comboboxes = []
+highlighted_path = []
 accessibility_var = tk.IntVar()
 accessibility_only_var = tk.IntVar()
 edge_closure_var = tk.IntVar()
@@ -35,7 +36,7 @@ edge_closure_var = tk.IntVar()
 
 # SETTING UP BFS // DFS Functions
 
-def bfs_shortest_paths(graph, start, accessible_only=False, closures=False):
+def bfs_shortest_paths(graph, start, accessible_only=False, respect_closures=False):
     dist = {v: float('inf') for v in graph}
     parent = {v: None for v in graph}
     visited = set()
@@ -53,10 +54,11 @@ def bfs_shortest_paths(graph, start, accessible_only=False, closures=False):
                 edge_key = tuple(sorted([u, v]))
                 edge_data = edges.get(edge_key, {})
                 
-                if closures and edge_data.get('closed', False):
+                # Skip closed edges when respecting closures
+                if respect_closures and edge_data.get('closed', False):
                     continue
                 
-                if accessible_only and not edge_data.get('accessible', False):
+                if accessible_only and not edge_data.get('accessible', True):
                     continue
                 
                 visited.add(v)
@@ -78,28 +80,38 @@ def reconstruction_path(parent, start, target):
         return []
     return list(reversed(rev_path))
 
-def dfs_cycle_and_topo(graph):
-    color = {v: 0 for v in graph}
-    postorder = []
-    has_cycle = False
-    def visit(u):
-        nonlocal has_cycle
-        color[u] = 1
-        for v in graph[u]:
-            if color[v] == 0:
-                visit(v)
-            elif color[v] == 1:
-                has_cycle = True
-                return
-        color[u] = 2
-        postorder.append(u)
-    for node in graph:
-        if color[node] == 0:
-            visit(node)
-        if has_cycle:
-            return True, []
-    topo = list(reversed(postorder))
-    return False, topo
+def dfs_path(graph, start, target, accessible_only=False, respect_closures=False):
+    visited = set()
+    path = []
+    order = []
+    
+    def dfs_visit(node):
+        visited.add(node)
+        order.append(node)
+        path.append(node)
+        
+        if node == target:
+            return True
+        
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                edge_key = tuple(sorted([node, neighbor]))
+                edge_data = edges.get(edge_key, {})
+                
+                if respect_closures and edge_data.get('closed', False):
+                    continue
+                
+                if accessible_only and not edge_data.get('accessible', True):
+                    continue
+                
+                if dfs_visit(neighbor):
+                    return True
+        
+        path.pop()
+        return False
+    
+    found = dfs_visit(start)
+    return path if found else [], order
 
 #Frame Layout 1 (GUI Interface)
 frame = tk.Frame(master=app, background="#2b2d3b", width=350)
@@ -160,7 +172,7 @@ distance_entry.pack(side = "left", padx=5)
 distance_entry.insert(0, "Distance")
 
 accessibility_switch = tk.Checkbutton(master=from_row, text = "Access.", font = ("Segoe UI Black", 12), background= "#8A87A4", fg = "black",
-                                      width=15)
+                                      width=15, variable = accessibility_var)
 accessibility_switch.pack(side = "left")
 
 #TO
@@ -235,12 +247,12 @@ DFS_button.pack(side="left", padx=10, pady=4)
 
 
 accessibility_switch_BFS_DFS = tk.Checkbutton(master=frame, text = "Accessibility", font = ("Segoe UI Black", 12),
-                                              width=15, variable=accessibility_only_var, background="#2b2d3b", fg="black")
+                                              width=15, variable=accessibility_only_var, background="#676386", fg="black")
 accessibility_switch_BFS_DFS.pack(side = "top")
 
 edge_closure = tk.Checkbutton(master=frame, text = "Respect Closures", font = ("Segoe UI Black", 12),
-                              width=15, variable=edge_closure_var, background="#2b2d3b", fg="black")
-edge_closure.pack(side = "top", padx=(5,1))
+                              width=15, variable=edge_closure_var, background="#676386", fg="black")
+edge_closure.pack(side = "top")
 
 
 #GRAPH
@@ -342,31 +354,63 @@ def draw_nodes():
     graph_canvas.delete("all")
     radius = 20
 
-    # Create Edge
-    for building, neighbors in graph.items():
-        x1, y1 = node_positions[building]
-        for neighbor in neighbors:
-            x2, y2 = node_positions[neighbor]
-            graph_canvas.create_line(x1, y1, x2, y2, fill="black", width=2)
+    # Create Edges
+    for edge_key, edge_data in edges.items():
+        n1, n2 = edge_key
+        x1, y1 = node_positions[n1]
+        x2, y2 = node_positions[n2]
 
-    # Create Nodes
+        # Determines edge color
+        is_in_path = False
+        if len(highlighted_path) > 1:
+            for i in range(len(highlighted_path) - 1):
+                if (highlighted_path[i] == n1 and highlighted_path[i+1] == n2) or \
+                   (highlighted_path[i] == n2 and highlighted_path[i+1] == n1):
+                    is_in_path = True
+                    break
+        
+        if edge_data['closed']:
+            color = "red"
+            width = 4
+        elif is_in_path:
+            color = "green"
+            width = 4
+        elif not edge_data['accessible']:
+            color = "orange"
+            width = 4
+        else:
+            color = "black"
+            width = 4
+        
+        graph_canvas.create_line(x1, y1, x2, y2, fill=color, width=width)
+        
+        # Draw weight labels
+        mid_x = (x1 + x2) / 2
+        mid_y = (y1 + y2) / 2
+        label = f"Distance:{edge_data['distance']} Time:{edge_data['time']}"
+        graph_canvas.create_text(mid_x, mid_y - 10, text=label, 
+                               fill="blue", font=("Arial", 9))
+
+    # Draw nodes 
     for building, (x, y) in node_positions.items():
+        # Highlight if in path
+        if building in highlighted_path:
+            fill_color = "green"
+            outline_color = "green"
+            outline_width = 3
+        else:
+            fill_color = "#676386"
+            outline_color = "#F8F8FF"
+            outline_width = 2
+        
         graph_canvas.create_oval(
             x - radius, y - radius, x + radius, y + radius,
-            fill="black", outline="#F8F8FF", width=2
+            fill=fill_color, outline=outline_color, width=outline_width
         )
-        graph_canvas.create_text(
-            x, y, text=building, fill="#F8F8FF",
-            font=("Segoe UI Black", 10)
-        )
-
-    for building, (x, y) in node_positions.items():
-        graph_canvas.create_oval(
-            x - radius, y - radius, x + radius, y + radius,
-            fill="Black", outline="#F8F8FF", width=2
-        )
-        graph_canvas.create_text(x, y, text=building, fill="#F8F8FF", 
+        graph_canvas.create_text(x, y, text=building, fill="#000000", 
                                 font=("Segoe UI Black", 10))
+
+
 
 def create_edge():
     a = from_combo_box.get().strip()
@@ -380,11 +424,24 @@ def create_edge():
         messagebox.showerror("Error", "Select two unique buildings!")
         return
 
+    dist_val = distance_entry.get().strip()
+    time_val = time_entry.get().strip()
+        
+        # if placeholder, assign random number for distance and time
+    if dist_val == "Distance" or not dist_val:
+        messagebox.showerror("Error", "Please enter a valid distance!")
+        return
+    if time_val == "Time" or not time_val:
+        messagebox.showerror("Error", "Please enter a valid time!")
+        return
     try:
-        distance = int(distance_entry.get())
-        time = int(time_entry.get())
+        distance = int(dist_val)
+        time = int(time_val)
+        # Non-positive values
+        if distance <= 0 or time <= 0:
+            raise ValueError
     except ValueError:
-        messagebox.showerror("Error", "Distance and time must be numbers!")
+        messagebox.showerror("Error", "Distance and time must be positive numbers!")
         return
     
     if b not in graph[a]:
@@ -408,28 +465,103 @@ def randomize_weights():
         return
     
     for edge_key in edges:
-        edges[edge_key]['distance'] = random.randint(1, 10)
-        edges[edge_key]['time'] = random.randint(1, 10)
-
-    for edge_key, data in edges.items():
-        print(f"{edge_key}: distance={data['distance']}, time={data['time']}")
+        edges[edge_key]['distance'] = random.randint(1, 50)
+        edges[edge_key]['time'] = random.randint(1, 50)
     draw_nodes()
 
 def clear_graph():
-    global graph, node_positions, edges
+    global graph, node_positions, edges, highlighted_path
     graph = {}
     node_positions = {}
+    highlighted_path = []
     edges = {}
     
     for combo in comboboxes:
         combo.configure(values=[""])
     
     graph_canvas.delete("all")
+    
+def toggle_edge_closure(event):
+    x, y = event.x, event.y
+    
+    for edge_key, edge_data in edges.items():
+        n1, n2 = edge_key
+        x1, y1 = node_positions[n1]
+        x2, y2 = node_positions[n2]
+        
+        # Calculate midpoint
+        mid_x = (x1 + x2) / 2
+        mid_y = (y1 + y2) / 2
+        
+        # Check if click is near midpoint
+        distance_to_mid = math.sqrt((x - mid_x)**2 + (y - mid_y)**2)
+        
+        if distance_to_mid < 30:
+            edge_data['closed'] = not edge_data['closed']
+            draw_nodes()
+            return
+
+def run_bfs():
+    start = start_combo_box.get().strip()
+    end = end_combo_box.get().strip()
+    
+    if not start or not end:
+        messagebox.showerror("Error", "Select start and end buildings!")
+        return
+    
+    if start not in graph or end not in graph:
+        messagebox.showerror("Error", "Invalid building selection!")
+        return
+    
+    accessible_only = accessibility_only_var.get() == 1
+    respect_closures = edge_closure_var.get() == 1
+    
+    dist, parent, order = bfs_shortest_paths(graph, start, accessible_only, respect_closures)
+    path = reconstruction_path(parent, start, end)
+    
+    if not path:
+        messagebox.showinfo("No Path", f"No path found from {start} to {end}")
+        return
+    
+    global highlighted_path
+    highlighted_path = path
+    draw_nodes()
+
+def run_dfs():
+    start = start_combo_box.get().strip()
+    end = end_combo_box.get().strip()
+    
+    # No buildings selected
+    if not start or not end:
+        messagebox.showerror("Error", "Select start and end buildings!")
+        return
+    
+    # Invalid selection
+    if start not in graph or end not in graph:
+        messagebox.showerror("Error", "Invalid building selection!")
+        return
+    
+    accessible_only = accessibility_only_var.get() == 1
+    respect_closures = edge_closure_var.get() == 1
+    
+    path, order = dfs_path(graph, start, end, accessible_only, respect_closures)
+    
+    # No path found
+    if not path:
+        messagebox.showinfo("No Path", f"No path found from {start} to {end}")
+        return
+    
+    global highlighted_path
+    highlighted_path = path
+    draw_nodes()
 
 # Binds the commands to the GUI
 add_button.configure(command=add_building)
 change_button.configure(command=create_edge)
 randomize_button.configure(command=randomize_weights)
 clear_button.configure(command=clear_graph)
+BFS_button.configure(command=run_bfs)
+DFS_button.configure(command=run_dfs)
+graph_canvas.bind("<Button-1>", toggle_edge_closure)
 
 app.mainloop()
