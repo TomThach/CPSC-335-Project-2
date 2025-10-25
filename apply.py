@@ -15,7 +15,6 @@ app = tk.Tk()
 app.geometry("1200x700")
 
 # Styling for ComboBoxes
-
 style= ttk.Style()
 style.theme_use('clam')
 style.configure("TCombobox",
@@ -29,11 +28,11 @@ graph = {}
 node_positions = {}
 edges = {}
 comboboxes = []
-
+accessibility_var = tk.IntVar()
 
 # SETTING UP BFS // DFS Functions
 
-def bfs_shortest_paths(graph, start):
+def bfs_shortest_paths(graph, start, accessible_only=False, closures=False):
     dist = {v: float('inf') for v in graph}
     parent = {v: None for v in graph}
     visited = set()
@@ -41,15 +40,27 @@ def bfs_shortest_paths(graph, start):
     visited.add(start)
     dist[start] = 0
     order = []
+    
     while q:
         u = q.popleft()
         order.append(u)
+        
         for v in graph[u]:
             if v not in visited:
+                edge_key = tuple(sorted([u, v]))
+                edge_data = edges.get(edge_key, {})
+                
+                if closures and edge_data.get('closed', False):
+                    continue
+                
+                if accessible_only and not edge_data.get('accessible', False):
+                    continue
+                
                 visited.add(v)
                 dist[v] = dist[u] + 1
                 parent[v] = u
                 q.append(v)
+    
     return dist, parent, order
 
 def reconstruction_path(parent, start, target):
@@ -87,21 +98,17 @@ def dfs_cycle_and_topo(graph):
     topo = list(reversed(postorder))
     return False, topo
 
-
-
-
-#Frame Layout 1 (asdasdsad)
+#Frame Layout 1 (GUI Interface)
 frame = tk.Frame(master=app, background="#2b2d3b", width=350)
 frame.pack(side = "left", fill = "y")
 frame.pack_propagate(False)
 
 
-#Frame Layout 2 (Graph)
+#Frame Layout 2 (Graph Interface)
 frame2 = tk.Frame(master=app, background="#2b2d3b")
 frame2.pack(side = "right", fill = "both", expand = True)
 graph_label = tk.Label(master=frame2, text = "Campus Map")
 graph_label.pack(pady=10)
-
 
 
 #LABEL
@@ -144,11 +151,12 @@ from_combo_box = ttk.Combobox(master=from_row, values = [""], width=5,
                              foreground ="#F8F8FF", font = ("Segoe UI Black", 15), background= "#2b2d3b")
 from_combo_box.pack(side = "left", padx=1)
 
-distance_entry = tk.Entry(master = from_row, width=8, foreground ="#F8F8FF",
+distance_entry = tk.Entry(master = from_row, width=8, foreground ="#888888",
                       background= "#2b2d3b", font = ("Segoe UI Black", 12))
 distance_entry.pack(side = "left", padx=5)
+distance_entry.insert(0, "Distance")
 
-accessibility_switch = tk.Checkbutton(master=from_row, text = "Access.", font = ("Segoe UI Black", 12), background= "#8A87A4", fg = "#F8F8FF" )
+accessibility_switch = tk.Checkbutton(master=from_row, text = "Access.", font = ("Segoe UI Black", 12), background= "#8A87A4", fg = "black" )
 accessibility_switch.pack(side = "left")
 
 #TO
@@ -163,9 +171,10 @@ to_combo_box = ttk.Combobox(master=to_row, values = [""], width=5,
                              foreground ="#F8F8FF", font = ("Segoe UI Black", 15), background= "#2b2d3b")
 to_combo_box.pack(side = "left", padx=1)
 
-time_entry = tk.Entry(master = to_row, width=8, foreground ="#F8F8FF",
+time_entry = tk.Entry(master = to_row, width=8, foreground ="#888888",
                       background= "#2b2d3b", font = ("Segoe UI Black", 12))
 time_entry.pack(side = "left", padx=5)
+time_entry.insert(0, "Time")
 
 change_button = tk.Button(master=to_row, text = "Change", background = "#8A87A4",
                  foreground ="#F8F8FF", font = ("Segoe UI Black", 12), width = 6, height=1)
@@ -230,7 +239,46 @@ edge_closure.pack(side = "top", padx=(5,1))
 
 #GRAPH
 
+graph_frame = tk.Frame(master=frame2, bg="black")
+graph_frame.pack()
+comboboxes = [from_combo_box, to_combo_box, start_combo_box, end_combo_box]
+#Frame for the graph
+graph_canvas = tk.Canvas(frame2, bg="white", width=600, height=400)
+graph_canvas.pack(fill="both", expand=True)
 
+
+# Clears the Placeholder Text for Distance and Time Entry
+
+def clear_distance_placeholder(event):
+    if distance_entry.get() == "Distance":
+        distance_entry.delete(0, tk.END)
+        distance_entry.config(foreground="#F8F8FF")
+
+def restore_distance_placeholder(event):
+    if distance_entry.get() == "":
+        distance_entry.insert(0, "Distance")
+        distance_entry.config(foreground="#888888")
+
+#Bindings
+distance_entry.bind("<FocusIn>", clear_distance_placeholder)
+distance_entry.bind("<FocusOut>", restore_distance_placeholder)
+
+def clear_time_placeholder(event):
+    if time_entry.get() == "Time":
+        time_entry.delete(0, tk.END)
+        time_entry.config(foreground="#F8F8FF")
+
+def restore_time_placeholder(event):
+    if time_entry.get() == "":
+        time_entry.insert(0, "Time")
+        time_entry.config(foreground="#888888")
+
+#Bindings
+time_entry.bind("<FocusIn>", clear_time_placeholder)
+time_entry.bind("<FocusOut>", restore_time_placeholder)
+
+
+# Add Building Button
 def add_building():
     name = entry.get().strip()
     if not name:
@@ -242,11 +290,77 @@ def add_building():
 
     graph[name] = []
     print(graph)
+
+    width = graph_canvas.winfo_width()
+    height = graph_canvas.winfo_height()
+
+    # makes it so nodes don't accidentally overlap
+    #radius - determines distance between the nodes
+    radius = 60
+    max_attempts = 50
+
+    for _ in range(max_attempts):
+        x2 = random.randint(50, width - 50)
+        y2 = random.randint(50, height - 50)
+        overlap = False
+    
+        for (x1, y1) in node_positions.values():
+            distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            if distance < radius * 2:
+                overlap = True
+                break
+    
+        if not overlap:
+            break
+    else:
+    # if it uses all attempts, it places the node regardless of it overlaps
+        x2 = random.randint(50, width - 50)
+        y2 = random.randint(50, height - 50)
+
+    node_positions[name] = (x2, y2)
+
+    for combo in comboboxes:
+        values = list(combo.cget("values"))
+        if "" in values:
+            values.remove("")
+        if name not in values:
+            values.append(name)
+            combo.configure(values=values)
+
+    draw_nodes()
     entry.delete(0, "end")
 
 
+def draw_nodes():
+    # Clears the canvas
+    graph_canvas.delete("all")
+    radius = 20
 
+    # Create Edge
+    for building, neighbors in graph.items():
+        x1, y1 = node_positions[building]
+        for neighbor in neighbors:
+            x2, y2 = node_positions[neighbor]
+            graph_canvas.create_line(x1, y1, x2, y2, fill="black", width=2)
 
+    # Create Nodes
+    for building, (x, y) in node_positions.items():
+        graph_canvas.create_oval(
+            x - radius, y - radius, x + radius, y + radius,
+            fill="black", outline="#F8F8FF", width=2
+        )
+        graph_canvas.create_text(
+            x, y, text=building, fill="#F8F8FF",
+            font=("Segoe UI Black", 10)
+        )
+
+    for building, (x, y) in node_positions.items():
+        graph_canvas.create_oval(
+            x - radius, y - radius, x + radius, y + radius,
+            fill="Black", outline="#F8F8FF", width=2
+        )
+        graph_canvas.create_text(x, y, text=building, fill="#F8F8FF", 
+                                font=("Segoe UI Black", 10))
 
 def create_edge():
     a = from_combo_box.get().strip()
@@ -266,9 +380,36 @@ def create_edge():
     except ValueError:
         messagebox.showerror("Error", "Distance and time must be numbers!")
         return
+    
+    if b not in graph[a]:
+        graph[a].append(b)
+    if a not in graph[b]:
+        graph[b].append(a)
+
+    accessible = accessibility_var.get() == 1
+    edge_key = tuple(sorted([a, b]))
+    edges[edge_key] = {
+        'distance': distance,
+        'time': time,
+        'accessible': accessible,
+        'closed': False
+    }
+    draw_nodes()
+
+def randomize_weights():
+    if not edges:
+        messagebox.showinfo("Info", "No edges to randomize!")
+        return
+    
+    for edge_key in edges:
+        edges[edge_key]['distance'] = random.randint(1, 10)
+        edges[edge_key]['time'] = random.randint(1, 10)
+    draw_nodes()
 
 
+# Binds the commands to the GUI
 add_button.configure(command=add_building)
 change_button.configure(command=create_edge)
+randomize_button.configure(command=randomize_weights)
 
 app.mainloop()
